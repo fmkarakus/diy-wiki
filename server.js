@@ -66,9 +66,11 @@ app.get('/api/page/:slug', async (req, res) => {
 app.post('/api/page/:slug', async (req, res) => {
   const filename = slugToPath(req.params.slug);
   try {
-
+    const body = req.body.body;
+    const data = await writeFile(filename, body);
+    res.json({ status: 'ok'});
   } catch (e) {
-
+    res.json({ status: 'error', message: 'Could not write page.' });
   }
 });
 
@@ -79,7 +81,10 @@ app.post('/api/page/:slug', async (req, res) => {
 //  success response: {status:'ok', pages: ['fileName', 'otherFileName']}
 //  failure response: no failure response
 app.get('/api/pages/all', async (req, res) => {
-
+  const files = await readDir(DATA_DIR);
+  const fileName = files.map((name) => name.slice(0, name.length - 3));
+  res.json({ status: 'ok', pages: fileName });
+  
 });
 
 
@@ -90,7 +95,22 @@ app.get('/api/pages/all', async (req, res) => {
 //  success response: {status:'ok', tags: ['tagName', 'otherTagName']}
 //  failure response: no failure response
 app.get('/api/tags/all', async (req, res) => {
-
+  const files = await readDir(DATA_DIR);
+  let tags = [];
+  for (let file of files) {
+    const FILE_PATH = path.join(DATA_DIR, file);
+    const content = await readFile(FILE_PATH, 'utf-8');
+    const tag = content.match(TAG_RE);
+    tags = tags.concat(tag)
+  }
+  const list = [];
+  tags.forEach((tag) => {
+    tag = tag.slice(1);
+    if (!list.includes(tag)) {
+      list.push(tag);
+    }
+  });
+  res.json({ status: 'ok', tags: list });
 });
 
 
@@ -100,7 +120,18 @@ app.get('/api/tags/all', async (req, res) => {
 //  success response: {status:'ok', tag: 'tagName', pages: ['tagName', 'otherTagName']}
 //  failure response: no failure response
 app.get('/api/tags/:tag', async (req, res) => {
-
+  const tagName = req.params.tag
+  //console.log(tagName)
+  const files = await readDir(DATA_DIR);
+  let pages = [];
+  for (let file of files) {
+    const FILE_PATH = path.join(DATA_DIR, file);
+    const content = await readFile(FILE_PATH, 'utf-8');
+     if (content.includes(tagName)) {
+     pages.push(file.slice(0, file.length - 3));
+    }
+  }
+  res.json({ status:'ok', tag: tagName, pages: pages });
 });
 
 
